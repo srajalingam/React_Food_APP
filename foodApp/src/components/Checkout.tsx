@@ -1,4 +1,4 @@
-import React, { use } from "react";
+import React, { use, useActionState } from "react";
 import Modal from "./UI/Modal";
 import CartContext from "../store/CartContext";
 import { currencyFormater } from "../util/formatting.js";
@@ -25,7 +25,6 @@ const Checkout = () => {
   const {
     data,
     error,
-    isLoading: isSending,
     sendRequest,
     clearData,
   } = useHttp("http://localhost:3000/orders", requestConfig, null);
@@ -79,7 +78,7 @@ const Checkout = () => {
     // });
   }
   
-  async function checkoutAction(fd) {
+  async function checkoutAction(prevState, fd) {
     const customerData = Object.fromEntries(fd.entries());
     console.log(customerData);
 
@@ -92,6 +91,8 @@ const Checkout = () => {
       }),
     );
   }
+
+  const[formState,formAction,isSending] =useActionState(checkoutAction,null);
 
   let actions = (
     <>
@@ -129,7 +130,7 @@ const Checkout = () => {
         onClose={handleCloseCheckout}
         className="checkout"
       >
-        <form action={checkoutAction}>
+        <form action={formAction}>
           <h2>Checkout</h2>
           <p>Total Amount: {currencyFormater.format(cartTotal)}</p>
           <Input label="Your Name" id="name" type="text" />
