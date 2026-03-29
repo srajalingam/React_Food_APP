@@ -5,6 +5,14 @@ import { currencyFormater } from "../util/formatting.js";
 import Input from "./UI/Input.js";
 import Button from "./UI/Button.js";
 import UserProgressContext from "../store/UserProgressContext.js";
+import useHttp from "../hooks/useHttp.js";
+
+const requestConfig = {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+};
 
 const Checkout = () => {
   const cartCtx = use(CartContext);
@@ -13,9 +21,25 @@ const Checkout = () => {
     (total, item) => total + item.price * item.quantity,
     0,
   );
+
+  const {
+    data,
+    error,
+    isLoading: isSending,
+    sendRequest,
+    clearData,
+  } = useHttp("http://localhost:3000/orders", requestConfig, null);
+
   function handleCloseCheckout() {
     userProgressCtx.hideCheckout();
   }
+
+  function handleFinishCheckout() {
+    cartCtx.clearCart();
+    userProgressCtx.hideCheckout();
+    clearData();
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -30,21 +54,58 @@ const Checkout = () => {
     const customerData = Object.fromEntries(fd.entries());
     console.log(customerData);
 
-    fetch("http://localhost:3000/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    sendRequest(
+      JSON.stringify({
         order: {
-            items: cartCtx.items,
-            customer: customerData,
+          items: cartCtx.items,
+          customer: customerData,
         },
       }),
-    }).then((res) => {  
-          console.log(res);
-    });
+    );
 
+    // fetch("http://localhost:3000/orders", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({
+    //     order: {
+    //         items: cartCtx.items,
+    //         customer: customerData,
+    //     },
+    //   }),
+    // }).then((res) => {
+    //       console.log(res);
+    // });
+  }
+  let actions = (
+    <>
+      <Button textOnly type="button" onClick={handleFinishCheckout}>
+        Close
+      </Button>
+      <Button>Submit Order</Button>
+    </>
+  );
+  if (isSending) {
+    actions = <p>Sending order data...</p>;
+  }
+  if (error) {
+    actions = <p>{error}</p>;
+  }
+  if (data && !error) {
+    return (
+      <Modal
+        open={userProgressCtx.progress == "checkout"}
+        onClose={handleCloseCheckout}
+        className="checkout"
+      >
+        <h2>Order Placed!</h2>
+        <p>Your order has been placed successfully.</p>
+        <p className="modal-actions">
+          <Button onClick={handleFinishCheckout}>Okay</Button>
+        </p>
+      </Modal>
+    );
   }
   return (
     <>
@@ -63,12 +124,7 @@ const Checkout = () => {
             <Input label="Postal Code" id="postal-code" type="text" />
             <Input label="City" id="city" type="text" />
           </div>
-          <p className="modal-actions">
-            <Button textOnly type="button" onClick={handleCloseCheckout}>
-              Close
-            </Button>
-            <Button>Submit Order</Button>
-          </p>
+          <p className="modal-actions">{actions}</p>
         </form>
       </Modal>
     </>
