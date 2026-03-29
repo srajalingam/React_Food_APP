@@ -78,6 +78,21 @@ const Checkout = () => {
     //       console.log(res);
     // });
   }
+  
+  async function checkoutAction(fd) {
+    const customerData = Object.fromEntries(fd.entries());
+    console.log(customerData);
+
+    await sendRequest(
+      JSON.stringify({
+        order: {
+          items: cartCtx.items,
+          customer: customerData,
+        },
+      }),
+    );
+  }
+
   let actions = (
     <>
       <Button textOnly type="button" onClick={handleFinishCheckout}>
@@ -114,7 +129,7 @@ const Checkout = () => {
         onClose={handleCloseCheckout}
         className="checkout"
       >
-        <form onSubmit={handleSubmit}>
+        <form action={checkoutAction}>
           <h2>Checkout</h2>
           <p>Total Amount: {currencyFormater.format(cartTotal)}</p>
           <Input label="Your Name" id="name" type="text" />
